@@ -1,0 +1,436 @@
+openapi: 3.0.3
+info:
+  title: Movie Rental API
+  description: "API для управления сервисом проката фильмов, включая фильмы, аренд\
+    ы, пользователей и платежи."
+  version: 1.2.0
+servers:
+- url: https://api.movierental.com
+  description: Production server
+paths:
+  /movies:
+    get:
+      summary: Получить список доступных фильмов
+      description: "Возвращает список фильмов, доступных для аренды."
+      operationId: movies_get
+      parameters:
+      - name: genre
+        in: query
+        description: Фильтр по жанру
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: releaseYear
+        in: query
+        description: Фильтр по году выпуска
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: Список фильмов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Movie'
+                x-content-type: application/json
+        "500":
+          description: Ошибка сервера
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+    post:
+      summary: Добавить новый фильм
+      description: Добавляет новый фильм в каталог.
+      operationId: movies_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Movie'
+            examples:
+              example1:
+                summary: Пример добавления фильма
+                value:
+                  title: Брат
+                  genre: Драма
+                  releaseDate: 1997-05-17
+                  rentalPrice: 199.99
+        required: true
+      responses:
+        "201":
+          description: Фильм добавлен
+        "400":
+          description: Неверный ввод
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+  /movies/{movieId}:
+    get:
+      summary: Получить детали фильма
+      description: Возвращает подробную информацию о фильме по его ID.
+      operationId: movies_movie_id_get
+      parameters:
+      - name: movieId
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Детали фильма
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Movie'
+        "404":
+          description: Фильм не найден
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+    put:
+      summary: Обновить детали фильма
+      description: Обновляет информацию о фильме по его ID.
+      operationId: movies_movie_id_put
+      parameters:
+      - name: movieId
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Movie'
+            examples:
+              example1:
+                summary: Пример обновления фильма
+                value:
+                  title: Брат 2
+                  genre: Драма
+                  releaseDate: 2000-05-11
+                  rentalPrice: 249.99
+        required: true
+      responses:
+        "200":
+          description: Фильм обновлен
+        "400":
+          description: Неверный ввод
+        "404":
+          description: Фильм не найден
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+    delete:
+      summary: Удалить фильм
+      description: Удаляет фильм по его ID.
+      operationId: movies_movie_id_delete
+      parameters:
+      - name: movieId
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        "204":
+          description: Фильм удален
+        "404":
+          description: Фильм не найден
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+  /rentals:
+    get:
+      summary: Получить список активных аренд
+      description: "Возвращает список фильмов, которые в данный момент находятся в\
+        \ аренде."
+      operationId: rentals_get
+      parameters:
+      - name: userId
+        in: query
+        description: Фильтр аренд по пользователю
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Список аренд
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rental'
+                x-content-type: application/json
+        "500":
+          description: Ошибка сервера
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+    post:
+      summary: Арендовать фильм
+      description: "Арендовать фильм, указав детали пользователя и фильма."
+      operationId: rentals_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RentalRequest'
+            examples:
+              example1:
+                summary: Пример аренды фильма
+                value:
+                  movieId: "1234"
+                  userId: "5678"
+        required: true
+      responses:
+        "201":
+          description: Фильм арендован успешно
+        "400":
+          description: Неверный ввод
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+  /rentals/{rentalId}:
+    get:
+      summary: Получить детали аренды
+      description: Возвращает детали конкретной аренды по её ID.
+      operationId: rentals_rental_id_get
+      parameters:
+      - name: rentalId
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Детали аренды
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rental'
+        "404":
+          description: Аренда не найдена
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+    delete:
+      summary: Вернуть фильм
+      description: Отмечает аренду как завершенную и удаляет запись.
+      operationId: rentals_rental_id_delete
+      parameters:
+      - name: rentalId
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        "204":
+          description: Фильм возвращен
+        "404":
+          description: Аренда не найдена
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+  /users:
+    get:
+      summary: Получить список пользователей
+      description: Возвращает список зарегистрированных пользователей.
+      operationId: users_get
+      responses:
+        "200":
+          description: Список пользователей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+                x-content-type: application/json
+        "500":
+          description: Ошибка сервера
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+    post:
+      summary: Зарегистрировать нового пользователя
+      description: Регистрирует нового пользователя в системе.
+      operationId: users_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+            examples:
+              example1:
+                summary: Пример регистрации пользователя
+                value:
+                  name: Иван Иванов
+                  email: ivan.ivanov@example.com
+                  password: очень_сложный_пароль123
+        required: true
+      responses:
+        "201":
+          description: Пользователь зарегистрирован
+        "400":
+          description: Неверный ввод
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+  /users/{userId}/rentals:
+    get:
+      summary: Получить историю аренд пользователя
+      description: "Возвращает список всех аренд, сделанных конкретным пользовател\
+        ем."
+      operationId: users_user_id_rentals_get
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Список аренд пользователя
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rental'
+                x-content-type: application/json
+        "404":
+          description: Пользователь не найден
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+  /payments:
+    post:
+      summary: Провести платеж
+      description: Провести платеж за аренду фильма.
+      operationId: payments_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+            examples:
+              example1:
+                summary: Пример запроса на оплату
+                value:
+                  rentalId: "7890"
+                  amount: 399.99
+        required: true
+      responses:
+        "201":
+          description: Платеж проведен
+        "400":
+          description: Неверные данные для платежа
+      x-openapi-router-controller: swagger_server.controllers.default_controller
+components:
+  schemas:
+    Movie:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор фильма
+        title:
+          type: string
+          description: Название фильма
+        genre:
+          type: string
+          description: Жанр фильма
+        releaseDate:
+          type: string
+          description: Дата выхода фильма
+          format: date
+        rentalPrice:
+          type: number
+          description: Стоимость аренды фильма
+      example:
+        rentalPrice: 0.8008281904610115
+        releaseDate: 2000-01-23
+        genre: genre
+        id: id
+        title: title
+    Rental:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор аренды
+        movieId:
+          type: string
+          description: ID арендованного фильма
+        userId:
+          type: string
+          description: "ID пользователя, арендующего фильм"
+        rentalDate:
+          type: string
+          description: Дата и время начала аренды
+          format: date-time
+        returnDate:
+          type: string
+          description: Дата и время окончания аренды
+          format: date-time
+      example:
+        rentalDate: 2000-01-23T04:56:07.000+00:00
+        returnDate: 2000-01-23T04:56:07.000+00:00
+        movieId: movieId
+        id: id
+        userId: userId
+    RentalRequest:
+      required:
+      - movieId
+      - userId
+      type: object
+      properties:
+        movieId:
+          type: string
+          description: ID фильма для аренды
+        userId:
+          type: string
+          description: "ID пользователя, который арендует фильм"
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор пользователя
+        name:
+          type: string
+          description: Полное имя пользователя
+        phone:
+          type: string
+          description: Номер телефона пользователя
+      example:
+        phone: phone
+        name: name
+        id: id
+    UserRegistration:
+      required:
+      - email
+      - name
+      - password
+      type: object
+      properties:
+        name:
+          type: string
+          description: Полное имя пользователя
+        email:
+          type: string
+          description: Электронная почта пользователя
+        password:
+          type: string
+          description: Пароль для учетной записи пользователя
+    PaymentRequest:
+      required:
+      - amount
+      - rentalId
+      type: object
+      properties:
+        rentalId:
+          type: string
+          description: "ID аренды, за которую производится оплата"
+        amount:
+          type: number
+          description: Сумма оплаты
+

@@ -1,0 +1,366 @@
+openapi: 3.0.3
+info:
+  title: Movie Rental API
+  description: API для управления сервисом проката фильмов, включая фильмы, аренды, пользователей и платежи.
+  version: 1.2.0
+servers:
+  - url: https://api.movierental.com
+    description: Production server
+paths:
+  /movies:
+    get:
+      summary: Получить список доступных фильмов
+      description: Возвращает список фильмов, доступных для аренды.
+      parameters:
+        - name: genre
+          in: query
+          schema:
+            type: string
+          description: Фильтр по жанру
+        - name: releaseYear
+          in: query
+          schema:
+            type: integer
+          description: Фильтр по году выпуска
+      responses:
+        '200':
+          description: Список фильмов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Movie'
+        '500':
+          description: Ошибка сервера
+    post:
+      summary: Добавить новый фильм
+      description: Добавляет новый фильм в каталог.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Movie'
+            examples:
+              example1:
+                summary: Пример добавления фильма
+                value:
+                  title: "Брат"
+                  genre: "Драма"
+                  releaseDate: "1997-05-17"
+                  rentalPrice: 199.99
+      responses:
+        '201':
+          description: Фильм добавлен
+        '400':
+          description: Неверный ввод
+  /movies/{movieId}:
+    get:
+      summary: Получить детали фильма
+      description: Возвращает подробную информацию о фильме по его ID.
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Детали фильма
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Movie'
+        '404':
+          description: Фильм не найден
+    put:
+      summary: Обновить детали фильма
+      description: Обновляет информацию о фильме по его ID.
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Movie'
+            examples:
+              example1:
+                summary: Пример обновления фильма
+                value:
+                  title: "Брат 2"
+                  genre: "Драма"
+                  releaseDate: "2000-05-11"
+                  rentalPrice: 249.99
+      responses:
+        '200':
+          description: Фильм обновлен
+        '400':
+          description: Неверный ввод
+        '404':
+          description: Фильм не найден
+    delete:
+      summary: Удалить фильм
+      description: Удаляет фильм по его ID.
+      parameters:
+        - name: movieId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Фильм удален
+        '404':
+          description: Фильм не найден
+  /rentals:
+    get:
+      summary: Получить список активных аренд
+      description: Возвращает список фильмов, которые в данный момент находятся в аренде.
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+          description: Фильтр аренд по пользователю
+      responses:
+        '200':
+          description: Список аренд
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rental'
+        '500':
+          description: Ошибка сервера
+    post:
+      summary: Арендовать фильм
+      description: Арендовать фильм, указав детали пользователя и фильма.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RentalRequest'
+            examples:
+              example1:
+                summary: Пример аренды фильма
+                value:
+                  movieId: "1234"
+                  userId: "5678"
+      responses:
+        '201':
+          description: Фильм арендован успешно
+        '400':
+          description: Неверный ввод
+  /rentals/{rentalId}:
+    get:
+      summary: Получить детали аренды
+      description: Возвращает детали конкретной аренды по её ID.
+      parameters:
+        - name: rentalId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Детали аренды
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rental'
+        '404':
+          description: Аренда не найдена
+    delete:
+      summary: Вернуть фильм
+      description: Отмечает аренду как завершенную и удаляет запись.
+      parameters:
+        - name: rentalId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Фильм возвращен
+        '404':
+          description: Аренда не найдена
+  /users:
+    get:
+      summary: Получить список пользователей
+      description: Возвращает список зарегистрированных пользователей.
+      responses:
+        '200':
+          description: Список пользователей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '500':
+          description: Ошибка сервера
+    post:
+      summary: Зарегистрировать нового пользователя
+      description: Регистрирует нового пользователя в системе.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+            examples:
+              example1:
+                summary: Пример регистрации пользователя
+                value:
+                  name: "Иван Иванов"
+                  email: "ivan.ivanov@example.com"
+                  password: "очень_сложный_пароль123"
+      responses:
+        '201':
+          description: Пользователь зарегистрирован
+        '400':
+          description: Неверный ввод
+  /users/{userId}/rentals:
+    get:
+      summary: Получить историю аренд пользователя
+      description: Возвращает список всех аренд, сделанных конкретным пользователем.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список аренд пользователя
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Rental'
+        '404':
+          description: Пользователь не найден
+  /payments:
+    post:
+      summary: Провести платеж
+      description: Провести платеж за аренду фильма.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+            examples:
+              example1:
+                summary: Пример запроса на оплату
+                value:
+                  rentalId: "7890"
+                  amount: 399.99
+      responses:
+        '201':
+          description: Платеж проведен
+        '400':
+          description: Неверные данные для платежа
+
+components:
+  schemas:
+    Movie:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор фильма
+        title:
+          type: string
+          description: Название фильма
+        genre:
+          type: string
+          description: Жанр фильма
+        releaseDate:
+          type: string
+          format: date
+          description: Дата выхода фильма
+        rentalPrice:
+          type: number
+          description: Стоимость аренды фильма
+    Rental:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор аренды
+        movieId:
+          type: string
+          description: ID арендованного фильма
+        userId:
+          type: string
+          description: ID пользователя, арендующего фильм
+        rentalDate:
+          type: string
+          format: date-time
+          description: Дата и время начала аренды
+        returnDate:
+          type: string
+          format: date-time
+          description: Дата и время окончания аренды
+    RentalRequest:
+      type: object
+      properties:
+        movieId:
+          type: string
+          description: ID фильма для аренды
+        userId:
+          type: string
+          description: ID пользователя, который арендует фильм
+      required:
+        - movieId
+        - userId
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор пользователя
+        name:
+          type: string
+          description: Полное имя пользователя
+        phone:
+          type: string
+          description: Номер телефона пользователя
+    UserRegistration:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Полное имя пользователя
+        email:
+          type: string
+          description: Электронная почта пользователя
+        password:
+          type: string
+          description: Пароль для учетной записи пользователя
+      required:
+        - name
+        - email
+        - password
+    PaymentRequest:
+      type: object
+      properties:
+        rentalId:
+          type: string
+          description: ID аренды, за которую производится оплата
+        amount:
+          type: number
+          description: Сумма оплаты
+      required:
+        - rentalId
+        - amount
