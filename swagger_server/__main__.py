@@ -4,10 +4,18 @@ import connexion
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from flask import request
 from swagger_server import encoder
+import random
 import time
 import logging
 import requests
 from logging.handlers import HTTPHandler
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
+
+app = connexion.App(__name__, specification_dir='./swagger/')
 
 REQUEST_COUNT = Counter('request_count', 'Общее количество запросов',
                         ['method', 'endpoint', 'http_status'])
@@ -15,7 +23,13 @@ REQUEST_LATENCY = Histogram('request_latency_seconds', 'Время обрабо�
                             ['method', 'endpoint'])
 ERROR_COUNT = Counter('error_count', 'Количество ошибок', ['method', 'endpoint', 'http_status'])
 
-app = connexion.App(__name__, specification_dir='./swagger/')
+trace.set_tracer_provider(TracerProvider())
+tracer = trace.get_tracer_provider().get_tracer(__name__)
+otlp_exporter = OTLPSpanExporter(endpoint="http://tempo:4317", insecure=True)
+span_processor = BatchSpanProcessor(otlp_exporter)
+trace.get_tracer_provider().add_span_processor(span_processor)
+
+FlaskInstrumentor().instrument_app(app.app)
 
 class LokiHandler(HTTPHandler):
     def __init__(self, url):
@@ -47,6 +61,13 @@ loki_handler.setFormatter(loki_formatter)
 
 app.app.logger.addHandler(loki_handler)
 app.app.logger.setLevel(logging.INFO)
+
+@app.app.route("/trace-example")
+def trace_example():
+    with tracer.start_as_current_span("example-span"):
+        time.sleep(random.uniform(0.1, 0.5))
+        return "Trace example!"
+
 @app.app.route('/metrics')
 
 def metrics():
